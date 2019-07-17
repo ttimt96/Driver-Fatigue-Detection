@@ -152,64 +152,77 @@ def getLandmarks(im):
     [points.append((p.x, p.y)) for p in predictor(im, newRect).parts()]
     return points
 
-capture = cv2.VideoCapture(0)
-
-for i in range(10):
-    ret, frame = capture.read()
-
-totalTime = 0.0
-validFrames = 0
-dummyFrames = 100
-
-print("Caliberation in Progress!")
-while(validFrames < dummyFrames):
-    validFrames += 1
-    t = time.time()
-    ret, frame = capture.read()
-    height, width = frame.shape[:2]
-    IMAGE_RESIZE = np.float32(height)/RESIZE_HEIGHT
-    frame = cv2.resize(frame, None, 
-                        fx = 1/IMAGE_RESIZE, 
-                        fy = 1/IMAGE_RESIZE, 
-                        interpolation = cv2.INTER_LINEAR)
-
-    # adjusted = gamma_correction(frame)
-    adjusted = histogram_equalization(frame)
-
-    landmarks = getLandmarks(adjusted)
-    timeLandmarks = time.time() - t
-
-    if landmarks == 0:
-        validFrames -= 1
-        cv2.putText(frame, "Unable to detect face, Please check proper lighting", (10, 30), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
-        cv2.putText(frame, "or decrease FACE_DOWNSAMPLE_RATIO", (10, 50), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
-        cv2.imshow("Blink Detection Demo", frame)
-        if cv2.waitKey(1) & 0xFF == 27:
-            sys.exit()
-
-    else:
-        totalTime += timeLandmarks
-        # cv2.putText(frame, "Caliberation in Progress", (200, 30), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
-        # cv2.imshow("Blink Detection Demo", frame)
-        
-    # if cv2.waitKey(1) & 0xFF == 27:
-    #         sys.exit()
-
-print("Caliberation Complete!")
-
-spf = totalTime/dummyFrames
-print("Current SPF (seconds per frame) is {:.2f} ms".format(spf * 1000))
-
-drowsyLimit = drowsyTime/spf
-falseBlinkLimit = blinkTime/spf
-print("drowsy limit: {}, false blink limit: {}".format(drowsyLimit, falseBlinkLimit))
-
 if __name__ == "__main__":
-    vid_writer = cv2.VideoWriter('output-low-light-2.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 15, (frame.shape[1],frame.shape[0]))
+
+    capture = cv2.VideoCapture(0)
+
+    for i in range(10):
+        ret, frame = capture.read()
+
+    totalTime = 0.0
+    validFrames = 0
+    dummyFrames = 100
+
+    print("Caliberation in Progress!")
+    while(validFrames < dummyFrames):
+        validFrames += 1
+        t = time.time()
+        ret, frame = capture.read()
+        height, width = frame.shape[:2]
+        IMAGE_RESIZE = np.float32(height)/RESIZE_HEIGHT
+        frame = cv2.resize(frame, None, 
+                            fx = 1/IMAGE_RESIZE, 
+                            fy = 1/IMAGE_RESIZE, 
+                            interpolation = cv2.INTER_LINEAR)
+
+        # adjusted = gamma_correction(frame)
+        adjusted = histogram_equalization(frame)
+
+        landmarks = getLandmarks(adjusted)
+        timeLandmarks = time.time() - t
+
+        if landmarks == 0:
+            validFrames -= 1
+            cv2.putText(frame, "Unable to detect face, Please check proper lighting", (10, 30), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+            cv2.putText(frame, "or decrease FACE_DOWNSAMPLE_RATIO", (10, 50), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+            cv2.imshow("Blink Detection Demo", frame)
+            if cv2.waitKey(1) & 0xFF == 27:
+                break
+
+        else:
+            totalTime += timeLandmarks
+            # cv2.putText(frame, "Caliberation in Progress", (200, 30), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+            # cv2.imshow("Blink Detection Demo", frame)
+            
+        # if cv2.waitKey(1) & 0xFF == 27:
+        #         sys.exit()
+
+    print("Caliberation Complete!")
+
+    spf = totalTime/dummyFrames
+    print("Current SPF (seconds per frame) is {:.2f} ms".format(spf * 1000))
+
+    drowsyLimit = 0
+    if spf != 0:
+        drowsyTime/spf
+    falseBlinkLimit = 0
+    if spf != 0:
+        blinkTime/spf
+
+    print("drowsy limit: {}, false blink limit: {}".format(drowsyLimit, falseBlinkLimit))
+    print("frame shape 1: " + str(frame.shape[1]))
+    print("frame shape 0: " + str(frame.shape[0]))
+    print("width: " + str(width))
+    print("height: " + str(height))
+
+    #vid_writer = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc(*"DIVX"), 15, (frame.shape[1] * 2, frame.shape[0] * 2))
+    vid_writer = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc(*"DIVX"), 15, (width, height))
+
     while(1):
         try:
             t = time.time()
             ret, frame = capture.read()
+            vid_writer.write(frame)
             height, width = frame.shape[:2]
             IMAGE_RESIZE = np.float32(height)/RESIZE_HEIGHT
             frame = cv2.resize(frame, None, 
@@ -255,7 +268,7 @@ if __name__ == "__main__":
 
 
             cv2.imshow("Blink Detection Demo", frame)
-            vid_writer.write(frame)
+            # vid_writer.write(frame)
 
             k = cv2.waitKey(1) 
             if k == ord('r'):

@@ -18,6 +18,9 @@ from scipy.spatial import distance as dist
 from threading import Thread
 import playsound
 import queue
+from picamera.array import PiRGBArray
+from picamera import PiCamera
+import imutils
 # from light_variability import adjust_gamma
 
 FACE_DOWNSAMPLE_RATIO = 1.5
@@ -45,6 +48,39 @@ threadStatusQ = queue.Queue()
 invGamma = 1.0/GAMMA
 table = np.array([((i / 255.0) ** invGamma) * 255 for i in range(0, 256)]).astype("uint8")
 
+class PiVideoStream:
+    def __init__(self, resolution=(320,240), framerate=60):
+        self.camera = PiCamera()
+        self.camera.resolution = resolution
+        self.camera.framerate = framerate
+        self.rawCapture = PiRGBArray(self.camera, size=resolution)
+        self.stream = self.camera.capture_continuous(self.rawCapture,
+                                                     format="bgr", use_video_port=True)
+        self.frame = None
+        self.stopped = False
+        
+    def start(self):
+        # start the thread to reaed frames from the video stream
+        Thread(target=self.update, args=()).start()
+        return self
+    
+    def update(self):
+        # loop infinitely until the thread is stopped
+        for f in self.stream:
+            self.frame = f.array
+            self.rawCapture.truncate(0)
+            
+            if self.stopped:
+                self.stream.close()
+                self.camera.close()
+                return
+
+    def read(self):
+        return self.frame
+    
+    def stop(self):
+        self.stopped = True
+        
 def gamma_correction(image):
     return cv2.LUT(image, table)
 
@@ -154,10 +190,8 @@ def getLandmarks(im):
 
 if __name__ == "__main__":
 
-    capture = cv2.VideoCapture(0)
-
-    for i in range(10):
-        ret, frame = capture.read()
+    vs = PiVideoStream().start()
+    time.sleep(2)
 
     totalTime = 0.0
     validFrames = 0
@@ -167,7 +201,7 @@ if __name__ == "__main__":
     while(validFrames < dummyFrames):
         validFrames += 1
         t = time.time()
-        ret, frame = capture.read()
+        frame = vs.read()
         height, width = frame.shape[:2]
         IMAGE_RESIZE = np.float32(height)/RESIZE_HEIGHT
         frame = cv2.resize(frame, None, 
@@ -191,11 +225,6 @@ if __name__ == "__main__":
 
         else:
             totalTime += timeLandmarks
-            # cv2.putText(frame, "Caliberation in Progress", (200, 30), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
-            # cv2.imshow("Blink Detection Demo", frame)
-            
-        # if cv2.waitKey(1) & 0xFF == 27:
-        #         sys.exit()
 
     print("Caliberation Complete!")
 
@@ -216,12 +245,12 @@ if __name__ == "__main__":
     print("height: " + str(height))
 
     #vid_writer = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc(*"DIVX"), 15, (frame.shape[1] * 2, frame.shape[0] * 2))
-    vid_writer = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc(*"DIVX"), 15, (width, height))
-
+    vid_writer = cv2.VideoWriter('outputNew.avi',cv2.VideoWriter_fourcc(*"DIVX"), 15, (320, 240))
+    
     while(1):
         try:
             t = time.time()
-            ret, frame = capture.read()
+            frame = vs.read()
             vid_writer.write(frame)
             height, width = frame.shape[:2]
             IMAGE_RESIZE = np.float32(height)/RESIZE_HEIGHT
@@ -268,7 +297,6 @@ if __name__ == "__main__":
 
 
             cv2.imshow("Blink Detection Demo", frame)
-            # vid_writer.write(frame)
 
             k = cv2.waitKey(1) 
             if k == ord('r'):
@@ -280,12 +308,10 @@ if __name__ == "__main__":
             elif k == 27:
                 break
 
-            # print("Time taken", time.time() - t)
-
         except Exception as e:
             print(e)
 
-    capture.release()
     vid_writer.release()
     cv2.destroyAllWindows()
+    vs.stop()
 

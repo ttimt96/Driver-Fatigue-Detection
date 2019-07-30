@@ -28,9 +28,11 @@ RESIZE_HEIGHT = 460
 
 thresh = 0.3
 modelPath = "models/shape_predictor_70_face_landmarks.dat"
+cascade = "models/haarcascade_frontalface_default.xml"
 sound_path = "alarm.wav"
 
-detector = dlib.get_frontal_face_detector()
+# detector = dlib.get_frontal_face_detector()
+detector = cv2.CascadeClassifier(cascade)
 predictor = dlib.shape_predictor(modelPath)
 
 leftEyeIndex = [36, 37, 38, 39, 40, 41]

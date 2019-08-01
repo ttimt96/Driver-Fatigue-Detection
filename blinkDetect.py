@@ -51,7 +51,7 @@ invGamma = 1.0/GAMMA
 table = np.array([((i / 255.0) ** invGamma) * 255 for i in range(0, 256)]).astype("uint8")
 
 class PiVideoStream:
-    def __init__(self, resolution=(320,240), framerate=60):
+    def __init__(self, resolution=(640,480), framerate=30):
         self.camera = PiCamera()
         self.camera.resolution = resolution
         self.camera.framerate = framerate
@@ -177,14 +177,17 @@ def getLandmarks(im):
                             fy = 1.0/FACE_DOWNSAMPLE_RATIO, 
                             interpolation = cv2.INTER_LINEAR)
 
-    rects = detector(imSmall, 0)
+    #rects = detector(imSmall, 0)
+    rects = detector.detectMultiScale(imSmall, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30), flags=cv2.CASCADE_SCALE_IMAGE)
     if len(rects) == 0:
         return 0
 
-    newRect = dlib.rectangle(int(rects[0].left() * FACE_DOWNSAMPLE_RATIO),
-                            int(rects[0].top() * FACE_DOWNSAMPLE_RATIO),
-                            int(rects[0].right() * FACE_DOWNSAMPLE_RATIO),
-                            int(rects[0].bottom() * FACE_DOWNSAMPLE_RATIO))
+    arects = rects[0];
+    newRect = dlib.rectangle(int(rects[0][0] * FACE_DOWNSAMPLE_RATIO),
+                             int(rects[0][1] * FACE_DOWNSAMPLE_RATIO),
+                             int((rects[0][2] + rects[0][0]) * FACE_DOWNSAMPLE_RATIO),
+                             int((rects[0][3] + rects[0][1]) * FACE_DOWNSAMPLE_RATIO)
+                            )
 
     points = []
     [points.append((p.x, p.y)) for p in predictor(im, newRect).parts()]
@@ -247,10 +250,11 @@ if __name__ == "__main__":
     print("height: " + str(height))
 
     #vid_writer = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc(*"DIVX"), 15, (frame.shape[1] * 2, frame.shape[0] * 2))
-    vid_writer = cv2.VideoWriter('outputNew.avi',cv2.VideoWriter_fourcc(*"DIVX"), 15, (320, 240))
+    vid_writer = cv2.VideoWriter('outputNew.avi',cv2.VideoWriter_fourcc(*"DIVX"), 5, (640, 480))
     
     while(1):
         try:
+            print(0);
             t = time.time()
             frame = vs.read()
             vid_writer.write(frame)
@@ -260,11 +264,12 @@ if __name__ == "__main__":
                                 fx = 1/IMAGE_RESIZE, 
                                 fy = 1/IMAGE_RESIZE, 
                                 interpolation = cv2.INTER_LINEAR)
-
+            print(1);
             # adjusted = gamma_correction(frame)
             adjusted = histogram_equalization(frame)
-
+            print(2);
             landmarks = getLandmarks(adjusted)
+            print(3);
             if landmarks == 0:
                 validFrames -= 1
                 cv2.putText(frame, "Unable to detect face, Please check proper lighting", (10, 30), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
@@ -273,16 +278,16 @@ if __name__ == "__main__":
                 if cv2.waitKey(1) & 0xFF == 27:
                     break
                 continue
-
+            print(4);
             eyeStatus = checkEyeStatus(landmarks)
             checkBlinkStatus(eyeStatus)
-
+            print(5);
             for i in range(0, len(leftEyeIndex)):
                 cv2.circle(frame, (landmarks[leftEyeIndex[i]][0], landmarks[leftEyeIndex[i]][1]), 1, (0, 0, 255), -1, lineType=cv2.LINE_AA)
 
             for i in range(0, len(rightEyeIndex)):
                 cv2.circle(frame, (landmarks[rightEyeIndex[i]][0], landmarks[rightEyeIndex[i]][1]), 1, (0, 0, 255), -1, lineType=cv2.LINE_AA)
-
+            print(6);
             if drowsy:
                 cv2.putText(frame, "! ! ! DROWSINESS ALERT ! ! !", (70, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
                 if not ALARM_ON:
@@ -297,7 +302,7 @@ if __name__ == "__main__":
                 # (0, 400)
                 ALARM_ON = False
 
-
+            print(7);
             cv2.imshow("Blink Detection Demo", frame)
 
             k = cv2.waitKey(1) 

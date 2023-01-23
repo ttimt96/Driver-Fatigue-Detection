@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     # Calibrate
     print("Calibration started")
-    #_detection.calibration()
+    # _detection.calibration()
     print("Calibration completed!")
     # End calibration
 

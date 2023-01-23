@@ -5,6 +5,7 @@ import cv2
 from threading import Thread
 from pivideostream import PiVideoStream
 from alarm import soundAlert
+from buzzer import buzzerAlert
 from scipy.spatial import distance as dist
 
 class Detection:
@@ -159,7 +160,7 @@ class Detection:
         # Check if alarm queue is running
         if not self.alarmThread.is_alive():
             # Start the queue
-            self.alarmThread = Thread(target=soundAlert, args=(lambda: self.stopThread,))
+            self.alarmThread = Thread(target=buzzerAlert, args=(lambda: self.stopThread,))
             self.alarmThread.daemon = True
             self.alarmThread.start()
 

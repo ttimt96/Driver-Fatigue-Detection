@@ -15,7 +15,8 @@ class PiVideoStream:
         # initialize the stream
         self.rawCapture = PiRGBArray(self.camera, size=resolution)
         self.stream = self.camera.capture_continuous(self.rawCapture,
-                                                     format="bgr", use_video_port=True)
+                                                format="bgr",
+                                                use_video_port=False)
         
         # initialize the frame and the variable used to indicate
         # if the thread should be stopped
@@ -37,9 +38,10 @@ class PiVideoStream:
             cv2.imshow("Blink Detection Demo", self.frame)
             #cv2.waitKey(30)
             if cv2.waitKey(30) & 0xFF == 27:
-                safeExit()
+                self.stop()
                 
             if self.stopped:
+                print("stopped")
                 self.stream.close()
                 self.camera.close()
                 return

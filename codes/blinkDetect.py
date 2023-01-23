@@ -3,7 +3,6 @@ import cv2
 import numpy as np
 import time
 from detection import Detection
-from alarm import soundAlert
 
 if __name__ == "__main__":
 
@@ -21,7 +20,7 @@ if __name__ == "__main__":
     
     # Start detection
     while(1):
-        try:            
+        try:
             # Read frame and resize
             _detection.readAndResizeFrame()
             
@@ -30,9 +29,11 @@ if __name__ == "__main__":
             
             # When no face detected
             if landmarks == 0:
+                _detection.offAlarm()
+                
                 # Break if ESC pressed
                 if cv2.waitKey(30) & 0xFF == 27:
-                    _detection.safeExit()#break
+                    _detection.safeExit() # break
                     
                 continue
             # end if
@@ -71,7 +72,7 @@ if __name__ == "__main__":
 
             # If ESC pressed, stop the program
             elif k == 27:
-                _detection.safeExit()#break
+                _detection.safeExit() # break
             
         except Exception as e:
             print('Exception: ' + repr(e))

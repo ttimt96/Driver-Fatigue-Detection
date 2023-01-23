@@ -15,6 +15,7 @@ def buzzerAlert(stop):
     # Run forever loop
     while True:
         if stop():
+            GPIO.output(buzzer, GPIO.LOW)
             break
         
         GPIO.output(buzzer, GPIO.HIGH)

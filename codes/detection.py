@@ -4,7 +4,6 @@ import time
 import cv2
 from threading import Thread
 from pivideostream import PiVideoStream
-from alarm import soundAlert
 from buzzer import buzzerAlert
 from scipy.spatial import distance as dist
 
@@ -29,8 +28,8 @@ class Detection:
         self.modelPath = "../models/shape_predictor_70_face_landmarks.dat"
         
         self.stopThread = False
-        
         self.alarmThread = Thread()
+        
         self.frame = None
         self.vid_writer = cv2.VideoWriter()
         
@@ -44,6 +43,20 @@ class Detection:
         
         self.detector = cv2.CascadeClassifier(self.cascade)
         self.predictor = dlib.shape_predictor(self.modelPath)
+
+    def readFrame(self):
+        self.frame = self.vs.read()
+        
+    def readAndResizeFrame(self):
+        self.readFrame()
+        
+        height, width = self.frame.shape[:2]
+        
+        self.IMAGE_RESIZE = np.float32(height)/self.RESIZE_HEIGHT
+        self.frame = cv2.resize(self.frame, None, 
+                            fx = 1/self.IMAGE_RESIZE, 
+                            fy = 1/self.IMAGE_RESIZE, 
+                            interpolation = cv2.INTER_LINEAR)
         
     def gamma_correction(self):
         return cv2.LUT(self.frame, self.table)
@@ -134,20 +147,6 @@ class Detection:
         
         return points
 
-    def readFrame(self):
-        self.frame = self.vs.read()
-        
-    def readAndResizeFrame(self):
-        self.readFrame()
-        
-        height, width = self.frame.shape[:2]
-        
-        self.IMAGE_RESIZE = np.float32(height)/self.RESIZE_HEIGHT
-        self.frame = cv2.resize(self.frame, None, 
-                            fx = 1/self.IMAGE_RESIZE, 
-                            fy = 1/self.IMAGE_RESIZE, 
-                            interpolation = cv2.INTER_LINEAR)
-
     def doNoFaceDetected(self):    
         cv2.putText(self.frame, "Unable to detect face, Please check proper lighting", (10, 30), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
         cv2.putText(self.frame, "or decrease FACE_DOWNSAMPLE_RATIO", (10, 50), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)    
@@ -212,9 +211,11 @@ class Detection:
 
     def safeExit(self):
         # Release and stop all
-        self.vs.stop()
+        print("safe exiting")
         self.offAlarm()
+        self.vs.stop()
         self.vid_writer.release()
         cv2.destroyAllWindows()
         
+        time.sleep(1)
         quit()
